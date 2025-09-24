@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Manajemen Data PNS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        
+        .loading-spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .file-drop-zone {
+            border: 2px dashed #cbd5e0;
+            transition: all 0.3s ease;
+        }
+        
+        .file-drop-zone.dragover {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div id="loginScreen" class="min-h-screen flex items-center justify-center px-4">
+        <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">Sistem Data PNS</h1>
+                <p class="text-gray-600">Silakan pilih mode akses</p>
+            </div>
+            
+            <div class="space-y-4">
+                <button id="guestBtn" class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                    Akses sebagai Tamu
+                </button>
+                
+                <div class="relative">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-gray-300"></div>
+                    </div>
+                    <div class="relative flex justify-center text-sm">
+                        <span class="px-2 bg-white text-gray-500">atau</span>
+                    </div>
+                </div>
+                
+                <button id="adminLoginBtn" class="w-full bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors font-medium">
+                    Login sebagai Admin
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="adminLoginModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center px-4 z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Login Admin</h2>
+            <form id="adminLoginForm">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                    <input type="text" id="adminUsername" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                    <input type="password" id="adminPassword" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                </div>
+                <div class="flex gap-3">
+                    <button type="button" id="cancelLogin" class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors">
+                        Batal
+                    </button>
+                    <button type="submit" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                        Login
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="guestView" class="hidden min-h-screen">
+        <div class="container mx-auto px-4 py-8">
+            <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-800">Form Pendaftaran PNS</h1>
+                        <p class="text-gray-600 mt-2">Silakan lengkapi data Anda dengan benar</p>
+                    </div>
+                    <button id="logoutGuest" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors">
+                        Keluar
+                    </button>
+                </div>
+            </div>
+
+            <div id="periodStatus" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                    </svg>
+                    <span class="text-yellow-800 font-medium">Status periode akan ditampilkan di sini</span>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <form id="guestForm" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Periode <span class="text-red-500">*</span></label>
+                        <select id="periode" name="periode" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                            <option value="">Pilih Periode</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nama Lengkap <span class="text-red-500">*</span></label>
+                        <input type="text" id="namaLengkap" name="namaLengkap" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">NIP <span class="text-red-500">*</span></label>
+                        <input type="text" id="nip" name="nip" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nama Jabatan <span class="text-red-500">*</span></label>
+                        <input type="text" id="namaJabatan" name="namaJabatan" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Pangkat dan Golongan <span class="text-red-500">*</span></label>
+                        <select id="pangkatGolongan" name="pangkatGolongan" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                            <option value="">Pilih Pangkat dan Golongan</option>
+                            <option value="Juru Muda - I/a">Juru Muda - I/a</option>
+                            <option value="Juru Muda Tingkat I - I/b">Juru Muda Tingkat I - I/b</option>
+                            <option value="Juru - I/c">Juru - I/c</option>
+                            <option value="Juru Tingkat I - I/d">Juru Tingkat I - I/d</option>
+                            <option value="Pengatur Muda - II/a">Pengatur Muda - II/a</option>
+                            <option value="Pengatur Muda Tingkat I - II/b">Pengatur Muda Tingkat I - II/b</option>
+                            <option value="Pengatur - II/c">Pengatur - II/c</option>
+                            <option value="Pengatur Tingkat I - II/d">Pengatur Tingkat I - II/d</option>
+                            <option value="Penata Muda - III/a">Penata Muda - III/a</option>
+                            <option value="Penata Muda Tingkat I - III/b">Penata Muda Tingkat I - III/b</option>
+                            <option value="Penata - III/c">Penata - III/c</option>
+                            <option value="Penata Tingkat I - III/d">Penata Tingkat I - III/d</option>
+                            <option value="Pembina - IV/a">Pembina - IV/a</option>
+                            <option value="Pembina Tingkat I - IV/b">Pembina Tingkat I - IV/b</option>
+                            <option value="Pembina Utama Muda - IV/c">Pembina Utama Muda - IV/c</option>
+                            <option value="Pembina Utama Madya - IV/d">Pembina Utama Madya - IV/d</option>
+                            <option value="Pembina Utama - IV/e">Pembina Utama - IV/e</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Unit Kerja <span class="text-red-500">*</span></label>
+                        <input type="text" id="unitKerja" name="unitKerja" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nomor WhatsApp <span class="text-red-500">*</span></label>
+                        <input type="tel" id="nomorWA" name="nomorWA" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="08xxxxxxxxxx" required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Upload Dokumen (ZIP/RAR) <span class="text-red-500">*</span></label>
+                        <div id="fileDropZone" class="file-drop-zone border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-blue-400 transition-colors">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <div class="mt-4">
+                                <p class="text-sm text-gray-600">
+                                    <span class="font-medium text-blue-600 hover:text-blue-500">Klik untuk upload</span> atau drag & drop
+                                </p>
+                                <p class="text-xs text-gray-500 mt-1">ZIP, RAR (Max. 10MB)</p>
+                            </div>
+                            <input type="file" id="dokumenFile" name="dokumenFile" class="hidden" accept=".zip,.rar" required>
+                        </div>
+                        <div id="fileInfo" class="hidden mt-2 p-3 bg-blue-50 rounded-lg">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    <span id="fileName" class="text-sm font-medium text-blue-800"></span>
+                                </div>
+                                <button type="button" id="removeFile" class="text-red-600 hover:text-red-800">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-6">
+                        <button type="submit" id="submitBtn" class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span id="submitText">Kirim Data</span>
+                            <div id="submitSpinner" class="hidden inline-block ml-2">
+                                <div class="loading-spinner"></div>
+                            </div>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="adminView" class="hidden min-h-screen">
+        <div class="container mx-auto px-4 py-8">
+            <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-800">Panel Admin</h1>
+                        <p class="text-gray-600 mt-2">Kelola periode dan lihat data pendaftaran</p>
+                    </div>
+                    <button id="logoutAdmin" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors">
+                        Logout
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Manajemen Periode</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="periodGrid">
+                    </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Data Pendaftaran</h2>
+                
+                <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Pencarian</label>
+                            <input type="text" id="adminSearchInput" placeholder="Cari nama, NIP, jabatan..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Filter Periode</label>
+                            <select id="filterPeriode" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm">
+                                <option value="">Semua Periode</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Filter Unit Kerja</label>
+                            <select id="filterUnitKerja" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm">
+                                <option value="">Semua Unit Kerja</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Urutkan</label>
+                            <select id="sortBy" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm">
+                                <option value="default">Default</option>
+                                <option value="nama-asc">Nama A-Z</option>
+                                <option value="nama-desc">Nama Z-A</option>
+                                <option value="tanggal-asc">Tanggal Terlama</option>
+                                <option value="tanggal-desc">Tanggal Terbaru</option>
+                                <option value="periode-asc">Periode A-Z</option>
+                                <option value="periode-desc">Periode Z-A</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div class="flex flex-wrap gap-2">
+                            <button id="clearFilters" class="bg-gray-500 text-white px-3 py-1 rounded text-sm hover:bg-gray-600 transition-colors">
+                                Reset Filter
+                            </button>
+                            <button id="refreshData" class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition-colors">
+                                Refresh Data
+                            </button>
+                        </div>
+                        
+                        <div id="filterStatus" class="text-sm text-gray-600">
+                            </div>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table id="adminDataTable" class="w-full">
+                        <thead class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+                            </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="successModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center px-4 z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md text-center">
+            <div class="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
+                <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-2">Data Berhasil Dikirim!</h3>
+            <p class="text-gray-600 mb-4">Terima kasih, data Anda telah tersimpan dengan baik.</p>
+            <button id="closeSuccessModal" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                Tutup
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentUser = null;
+        let periods = {};
+        let spreadsheetData = [];
+        
+        // Apps Script Web App URL - Replace with your actual URL
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwiRn7wbV-whpdnbEsNDaAgeZdCJFmeJLpfcu1TTQztH4G5h57C-RvFL9JtueVYqvuIYw/exec';
+        
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            loadPeriods();
+        });
+        
+        function setupEventListeners() {
+            // Login buttons
+            document.getElementById('guestBtn').addEventListener('click', () => loginAsGuest());
+            document.getElementById('adminLoginBtn').addEventListener('click', () => showAdminLogin());
+            document.getElementById('cancelLogin').addEventListener('click', () => hideAdminLogin());
+            document.getElementById('adminLoginForm').addEventListener('submit', handleAdminLogin);
+            
+            // Logout buttons
+            document.getElementById('logoutGuest').addEventListener('click', logout);
+            document.getElementById('logoutAdmin').addEventListener('click', logout);
+            
+            // File upload
+            setupFileUpload();
+            
+            // Guest form
+            document.getElementById('guestForm').addEventListener('submit', handleGuestSubmit);
+            
+            // Admin controls
+            document.getElementById('refreshData').addEventListener('click', loadSpreadsheetData);
+            document.getElementById('adminSearchInput').addEventListener('input', applyFiltersAndSort);
+            document.getElementById('filterPeriode').addEventListener('change', applyFiltersAndSort);
+            document.getElementById('filterUnitKerja').addEventListener('change', applyFiltersAndSort);
+            document.getElementById('sortBy').addEventListener('change', applyFiltersAndSort);
+            document.getElementById('clearFilters').addEventListener('click', clearAllFilters);
+            
+            // Success modal
+            document.getElementById('closeSuccessModal').addEventListener('click', () => {
+                document.getElementById('successModal').classList.add('hidden');
+                document.getElementById('guestForm').reset();
+                document.getElementById('fileInfo').classList.add('hidden');
+            });
+        }
+        
+        function setupFileUpload() {
+            const dropZone = document.getElementById('fileDropZone');
+            const fileInput = document.getElementById('dokumenFile');
+            const fileInfo = document.getElementById('fileInfo');
+            const fileName = document.getElementById('fileName');
+            const removeFile = document.getElementById('removeFile');
+            
+            dropZone.addEventListener('click', () => fileInput.click());
+            
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+            
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('dragover');
+            });
+            
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFileSelect(files[0]);
+                }
+            });
+            
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFileSelect(e.target.files[0]);
+                }
+            });
+            
+            removeFile.addEventListener('click', () => {
+                fileInput.value = '';
+                fileInfo.classList.add('hidden');
+            });
+            
+            function handleFileSelect(file) {
+                if (file.size > 10 * 1024 * 1024) { // 10MB limit
+                    alert('Ukuran file terlalu besar. Maksimal 10MB.');
+                    return;
+                }
+                
+                const allowedTypes = ['application/zip', 'application/x-rar-compressed', 'application/x-zip-compressed'];
+                if (!allowedTypes.includes(file.type) && !file.name.match(/\.(zip|rar)$/i)) {
+                    alert('Format file tidak didukung. Hanya ZIP dan RAR yang diperbolehkan.');
+                    return;
+                }
+                
+                fileName.textContent = file.name;
+                fileInfo.classList.remove('hidden');
+            }
+        }
+        
+        function loginAsGuest() {
+            currentUser = 'guest';
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('guestView').classList.remove('hidden');
+            loadActivePeriods();
+        }
+        
+        function showAdminLogin() {
+            document.getElementById('adminLoginModal').classList.remove('hidden');
+        }
+        
+        function hideAdminLogin() {
+            document.getElementById('adminLoginModal').classList.add('hidden');
+            document.getElementById('adminLoginForm').reset();
+        }
+        
+        function handleAdminLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('adminUsername').value;
+            const password = document.getElementById('adminPassword').value;
+            
+            if (username === 'admin' && password === 'Indramayu1') {
+                currentUser = 'admin';
+                hideAdminLogin();
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('adminView').classList.remove('hidden');
+                loadAdminData();
+            } else {
+                alert('Username atau password salah!');
+            }
+        }
+        
+        function logout() {
+            currentUser = null;
+            document.getElementById('guestView').classList.add('hidden');
+            document.getElementById('adminView').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+        }
+        
+        async function loadPeriods() {
+            // Initialize default periods (can be modified by admin)
+            periods = {
+                'Januari': { active: true },
+                'Februari': { active: true },
+                'Maret': { active: true },
+                'April': { active: true },
+                'Mei': { active: true },
+                'Juni': { active: true },
+                'Juli': { active: true },
+                'Agustus': { active: true },
+                'September': { active: true },
+                'Oktober': { active: true },
+                'November': { active: true },
+                'Desember': { active: true }
+            };
+            
+            // Try to load from localStorage (in real app, this would be from server)
+            const savedPeriods = localStorage.getItem('periods');
+            if (savedPeriods) {
+                periods = JSON.parse(savedPeriods);
+            }
+        }
+        
+        function loadActivePeriods() {
+            const periodeSelect = document.getElementById('periode');
+            periodeSelect.innerHTML = '<option value="">Pilih Periode</option>';
+            
+            let hasActivePeriod = false;
+            for (const [month, config] of Object.entries(periods)) {
+                if (config.active) {
+                    hasActivePeriod = true;
+                    const option = document.createElement('option');
+                    option.value = month;
+                    option.textContent = month;
+                    periodeSelect.appendChild(option);
+                }
+            }
+            
+            const statusDiv = document.getElementById('periodStatus');
+            if (hasActivePeriod) {
+                statusDiv.innerHTML = `
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span class="text-green-800 font-medium">Periode pendaftaran sedang aktif</span>
+                    </div>
+                `;
+                statusDiv.className = 'bg-green-50 border border-green-200 rounded-lg p-4 mb-6';
+            } else {
+                statusDiv.innerHTML = `
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                        </svg>
+                        <span class="text-red-800 font-medium">Tidak ada periode yang aktif saat ini</span>
+                    </div>
+                `;
+                statusDiv.className = 'bg-red-50 border border-red-200 rounded-lg p-4 mb-6';
+            }
+        }
+        
+        function loadAdminData() {
+            renderPeriodGrid();
+            loadSpreadsheetData();
+        }
+        
+        function renderPeriodGrid() {
+            const grid = document.getElementById('periodGrid');
+            grid.innerHTML = '';
+            
+            for (const [month, config] of Object.entries(periods)) {
+                const card = document.createElement('div');
+                card.className = `border rounded-lg p-4 ${config.active ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`;
+                
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-medium text-gray-800">${month}</h3>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" class="sr-only peer" ${config.active ? 'checked' : ''} onchange="togglePeriod('${month}')">
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                    <p class="text-sm text-gray-600 mt-2">
+                        Status: <span class="${config.active ? 'text-green-600' : 'text-red-600'} font-medium">
+                            ${config.active ? 'Aktif' : 'Nonaktif'}
+                        </span>
+                    </p>
+                `;
+                
+                grid.appendChild(card);
+            }
+        }
+        
+        function togglePeriod(month) {
+            periods[month].active = !periods[month].active;
+            localStorage.setItem('periods', JSON.stringify(periods));
+            renderPeriodGrid();
+        }
+        
+        async function handleGuestSubmit(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const submitText = document.getElementById('submitText');
+            const submitSpinner = document.getElementById('submitSpinner');
+            
+            // Disable submit button and show loading
+            submitBtn.disabled = true;
+            submitText.textContent = 'Mengirim...';
+            submitSpinner.classList.remove('hidden');
+            
+            try {
+                const formData = new FormData();
+                
+                // Add form fields
+                formData.append('periode', document.getElementById('periode').value);
+                formData.append('namaLengkap', document.getElementById('namaLengkap').value);
+                formData.append('nip', document.getElementById('nip').value);
+                formData.append('namaJabatan', document.getElementById('namaJabatan').value);
+                formData.append('pangkatGolongan', document.getElementById('pangkatGolongan').value);
+                formData.append('unitKerja', document.getElementById('unitKerja').value);
+                formData.append('nomorWA', document.getElementById('nomorWA').value);
+                
+                // Add file
+                const fileInput = document.getElementById('dokumenFile');
+                if (fileInput.files[0]) {
+                    formData.append('dokumen', fileInput.files[0]);
+                }
+                
+                // Add timestamp
+                formData.append('timestamp', new Date().toISOString());
+                
+                // Submit to Apps Script
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('successModal').classList.remove('hidden');
+                } else {
+                    throw new Error(result.error || 'Terjadi kesalahan');
+                }
+                
+            } catch (error) {
+                console.error('Error submitting form:', error);
+                alert('Terjadi kesalahan saat mengirim data. Silakan coba lagi.');
+            } finally {
+                // Re-enable submit button
+                submitBtn.disabled = false;
+                submitText.textContent = 'Kirim Data';
+                submitSpinner.classList.add('hidden');
+            }
+        }
+        
+        async function loadSpreadsheetData() {
+            try {
+                // Show loading state
+                const tbody = document.querySelector('#adminDataTable tbody');
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="px-6 py-8 text-center">
+                            <div class="flex items-center justify-center">
+                                <div class="loading-spinner mr-3"></div>
+                                <span class="text-gray-600">Memuat data dari Google Spreadsheet...</span>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                
+                // Google Spreadsheet CSV export URL
+                const SPREADSHEET_ID = '19elTNq_LRC9HbWiQHPkatVaFCe00FCHszoV9ze0-oHA';
+                const CSV_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=0`;
+                
+                // Fetch data from Google Spreadsheet
+                const response = await fetch(CSV_URL);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const csvText = await response.text();
+                
+                // Parse CSV data
+                spreadsheetData = parseCSV(csvText);
+                
+                // If no data found, show empty state
+                if (spreadsheetData.length === 0) {
+                    spreadsheetData = [
+                        ['Periode', 'Nama Lengkap', 'NIP', 'Jabatan', 'Pangkat/Golongan', 'Unit Kerja', 'No. WA', 'Dokumen', 'Tanggal']
+                    ];
+                }
+                
+                renderAdminTable();
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+                const tbody = document.querySelector('#adminDataTable tbody');
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="px-6 py-8 text-center">
+                            <div class="text-red-600">
+                                <svg class="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <p class="font-medium">Gagal memuat data dari Google Spreadsheet</p>
+                                <p class="text-sm mt-1">Pastikan spreadsheet dapat diakses publik</p>
+                                <button onclick="loadSpreadsheetData()" class="mt-3 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">Coba Lagi</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+        
+        // Function to parse CSV data
+        function parseCSV(csvText) {
+            const lines = csvText.split('\n');
+            const result = [];
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line) {
+                    // Simple CSV parsing - handles quoted fields
+                    const row = [];
+                    let current = '';
+                    let inQuotes = false;
+                    
+                    for (let j = 0; j < line.length; j++) {
+                        const char = line[j];
+                        
+                        if (char === '"') {
+                            inQuotes = !inQuotes;
+                        } else if (char === ',' && !inQuotes) {
+                            row.push(current.trim());
+                            current = '';
+                        } else {
+                            current += char;
+                        }
+                    }
+                    
+                    // Add the last field
+                    row.push(current.trim());
+                    
+                    // Clean up quoted fields
+                    const cleanRow = row.map(field => {
+                        if (field.startsWith('"') && field.endsWith('"')) {
+                            return field.slice(1, -1);
+                        }
+                        return field;
+                    });
+                    
+                    result.push(cleanRow);
+                }
+            }
+            
+            return result;
+        }
+        
+        function renderAdminTable() {
+            const table = document.getElementById('adminDataTable');
+            const thead = table.querySelector('thead');
+            const tbody = table.querySelector('tbody');
+            
+            // Clear existing content
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+            
+            if (spreadsheetData.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="px-6 py-8 text-center text-gray-500">
+                            <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <p>Belum ada data pendaftaran</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // Create header from first row
+            const headerRow = document.createElement('tr');
+            const headers = spreadsheetData[0];
+            
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.className = 'px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider';
+                th.textContent = header;
+                headerRow.appendChild(th);
+            });
+            
+            thead.appendChild(headerRow);
+            
+            // Create data rows (skip header row)
+            const dataRows = spreadsheetData.slice(1);
+            
+            if (dataRows.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="${headers.length}" class="px-6 py-8 text-center text-gray-500">
+                            <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <p>Belum ada data pendaftaran</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            dataRows.forEach((row, rowIndex) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50 transition-colors';
+                
+                row.forEach((cell, cellIndex) => {
+                    const td = document.createElement('td');
+                    td.className = 'px-4 py-3 text-sm text-gray-900 border-b border-gray-200';
+                    
+                    // Handle different column types
+                    if (cellIndex === 7 && cell && cell.includes('drive.google.com')) { 
+                        // Dokumen column - show as text only
+                        td.innerHTML = `
+                            <span class="text-blue-600 font-medium">
+                                Dokumen Tersedia
+                            </span>
+                        `;
+                    } else if (cellIndex === 6 && cell) { 
+                        // WhatsApp number column - show as text only
+                        td.innerHTML = `
+                            <span class="text-gray-900">
+                                ${cell}
+                            </span>
+                        `;
+                    } else if (cellIndex === 8 && cell) { 
+                        // Date column - format nicely
+                        const date = new Date(cell);
+                        if (!isNaN(date.getTime())) {
+                            td.innerHTML = `
+                                <div class="text-sm">
+                                    <div class="font-medium">${date.toLocaleDateString('id-ID')}</div>
+                                    <div class="text-gray-500">${date.toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}</div>
+                                </div>
+                            `;
+                        } else {
+                            td.textContent = cell || '-';
+                        }
+                    } else if (cellIndex === 0 && cell) { 
+                        // Periode column - add badge styling
+                        td.innerHTML = `
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                ${cell}
+                            </span>
+                        `;
+                    } else if (cellIndex === 4 && cell) { 
+                        // Pangkat/Golongan column - add badge styling
+                        td.innerHTML = `
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                ${cell}
+                            </span>
+                        `;
+                    } else {
+                        td.textContent = cell || '-';
+                    }
+                    
+                    tr.appendChild(td);
+                });
+                
+                tbody.appendChild(tr);
+            });
+            
+            // Populate filter options
+            populateFilterOptions(dataRows);
+            
+            // Update data count
+            updateDataCount(dataRows.length);
+        }
+        
+        function populateFilterOptions(dataRows) {
+            // Get unique values for filters
+            const periodeSet = new Set();
+            const unitKerjaSet = new Set();
+            
+            dataRows.forEach(row => {
+                if (row[0]) periodeSet.add(row[0]); // Periode
+                if (row[5]) unitKerjaSet.add(row[5]); // Unit Kerja
+            });
+            
+            // Populate Periode filter
+            const periodeSelect = document.getElementById('filterPeriode');
+            const currentPeriode = periodeSelect.value;
+            periodeSelect.innerHTML = '<option value="">Semua Periode</option>';
+            Array.from(periodeSet).sort().forEach(periode => {
+                const option = document.createElement('option');
+                option.value = periode;
+                option.textContent = periode;
+                if (periode === currentPeriode) option.selected = true;
+                periodeSelect.appendChild(option);
+            });
+            
+            // Populate Unit Kerja filter
+            const unitKerjaSelect = document.getElementById('filterUnitKerja');
+            const currentUnitKerja = unitKerjaSelect.value;
+            unitKerjaSelect.innerHTML = '<option value="">Semua Unit Kerja</option>';
+            Array.from(unitKerjaSet).sort().forEach(unitKerja => {
+                const option = document.createElement('option');
+                option.value = unitKerja;
+                option.textContent = unitKerja;
+                if (unitKerja === currentUnitKerja) option.selected = true;
+                unitKerjaSelect.appendChild(option);
+            });
+        }
+        
+        function applyFiltersAndSort() {
+            const searchTerm = document.getElementById('adminSearchInput').value.toLowerCase();
+            const filterPeriode = document.getElementById('filterPeriode').value;
+            const filterUnitKerja = document.getElementById('filterUnitKerja').value;
+            const sortBy = document.getElementById('sortBy').value;
+            
+            const rows = Array.from(document.querySelectorAll('#adminDataTable tbody tr'));
+            let visibleCount = 0;
+            
+            // Apply filters
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length === 0) return; // Skip empty rows
+                
+                const rowData = Array.from(cells).map(cell => cell.textContent.toLowerCase());
+                
+                // Search filter
+                const matchesSearch = searchTerm === '' || rowData.some(cell => cell.includes(searchTerm));
+                
+                // Periode filter
+                const matchesPeriode = filterPeriode === '' || cells[0].textContent === filterPeriode;
+                
+                // Unit Kerja filter
+                const matchesUnitKerja = filterUnitKerja === '' || cells[5].textContent === filterUnitKerja;
+                
+                if (matchesSearch && matchesPeriode && matchesUnitKerja) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Apply sorting to visible rows
+            if (sortBy !== 'default') {
+                const visibleRows = rows.filter(row => row.style.display !== 'none');
+                const tbody = document.querySelector('#adminDataTable tbody');
+                
+                visibleRows.sort((a, b) => {
+                    const aCells = a.querySelectorAll('td');
+                    const bCells = b.querySelectorAll('td');
+                    
+                    if (aCells.length === 0 || bCells.length === 0) return 0;
+                    
+                    let aValue, bValue;
+                    
+                    switch (sortBy) {
+                        case 'nama-asc':
+                        case 'nama-desc':
+                            aValue = aCells[1].textContent.toLowerCase(); // Nama Lengkap
+                            bValue = bCells[1].textContent.toLowerCase();
+                            break;
+                        case 'tanggal-asc':
+                        case 'tanggal-desc':
+                            aValue = new Date(aCells[8].textContent || 0); // Tanggal
+                            bValue = new Date(bCells[8].textContent || 0);
+                            break;
+                        case 'periode-asc':
+                        case 'periode-desc':
+                            aValue = aCells[0].textContent.toLowerCase(); // Periode
+                            bValue = bCells[0].textContent.toLowerCase();
+                            break;
+                        default:
+                            return 0;
+                    }
+                    
+                    let comparison = 0;
+                    if (aValue > bValue) comparison = 1;
+                    if (aValue < bValue) comparison = -1;
+                    
+                    return sortBy.includes('-desc') ? -comparison : comparison;
+                });
+                
+                // Re-append sorted rows
+                visibleRows.forEach(row => tbody.appendChild(row));
+                
+                // Re-append hidden rows at the end
+                rows.filter(row => row.style.display === 'none').forEach(row => tbody.appendChild(row));
+            }
+            
+            // Update filter status
+            updateFilterStatus(visibleCount, rows.length);
+        }
+        
+        function clearAllFilters() {
+            document.getElementById('adminSearchInput').value = '';
+            document.getElementById('filterPeriode').value = '';
+            document.getElementById('filterUnitKerja').value = '';
+            document.getElementById('sortBy').value = 'default';
+            applyFiltersAndSort();
+        }
+        
+        function updateFilterStatus(visibleCount, totalCount) {
+            const statusDiv = document.getElementById('filterStatus');
+            if (visibleCount === totalCount) {
+                statusDiv.textContent = `Menampilkan semua ${totalCount} data`;
+            } else {
+                statusDiv.textContent = `Menampilkan ${visibleCount} dari ${totalCount} data`;
+            }
+        }
+        
+        function updateDataCount(count) {
+            // Add or update data count display
+            let countDisplay = document.getElementById('dataCount');
+            if (!countDisplay) {
+                countDisplay = document.createElement('div');
+                countDisplay.id = 'dataCount';
+                countDisplay.className = 'text-sm text-gray-600 mb-4';
+                
+                const tableContainer = document.querySelector('#adminDataTable').parentElement;
+                tableContainer.insertBefore(countDisplay, tableContainer.firstChild);
+            }
+            
+            countDisplay.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span>Total: <strong class="text-blue-600">${count}</strong> data pendaftaran</span>
+                    <span class="text-xs text-gray-500">Terakhir dimuat: ${new Date().toLocaleString('id-ID')}</span>
+                </div>
+            `;
+        }
+        
+        // Make togglePeriod available globally
+        window.togglePeriod = togglePeriod;
+    </script>
+</body>
+</html>
